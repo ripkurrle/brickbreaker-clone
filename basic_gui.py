@@ -46,9 +46,9 @@ class Ball(GameObject):
             game_object = game_objects[0]
             coords = game_object.get_position()
             if x >= coords[2]:
-                self.direction[0] = 1
+                self.direction[0] = 1 #+ (coords[0] / coords[2])
             elif x <= coords[0]:
-                self.direction[0] = -1
+                self.direction[0] = -1 #+ (coords[0] / coords[2])
             else:
                 self.direction[1] *= -1
 
@@ -63,7 +63,7 @@ class Paddle(GameObject):
         self.height = 10
         self.ball = None
         item = canvas.create_rectangle(x - self.width / 2,
-                                       y - self.height / 2,
+                                       y - self.height / 2 ,
                                        x + self.width / 2,
                                        y + self.height / 2,
                                        fill='blue')
@@ -79,7 +79,7 @@ class Paddle(GameObject):
             super(Paddle, self).move(offset, 0)
             if self.ball is not None:
                 self.ball.move(offset, 0)
-
+    
 
 class Brick(GameObject):
     COLORS = {1: '#999999', 2: '#555555', 3: '#222222'}
@@ -146,7 +146,7 @@ class Game(tk.Frame):
             self.ball.delete()
         paddle_coords = self.paddle.get_position()
         x = (paddle_coords[0] + paddle_coords[2]) * 0.5
-        self.ball = Ball(self.canvas, x, 310)
+        self.ball = Ball(self.canvas, x, 275)
         self.paddle.set_ball(self.ball)
 
     def add_brick(self, x, y, hits):
@@ -173,10 +173,13 @@ class Game(tk.Frame):
 
     def game_loop(self):
         self.check_collisions()
+        ball_coords = self.ball.get_position()
+        paddle_coords = self.paddle.get_position()
         num_bricks = len(self.canvas.find_withtag('brick'))
         if num_bricks == 0: 
             self.ball.speed = None
             self.draw_text(300, 200, 'You win!')
+            self.canvas.bind('<space>', lambda _: self.restart()) 
         elif self.ball.get_position()[3] >= self.height: 
             self.ball.speed = None
             self.lives -= 1
@@ -186,7 +189,29 @@ class Game(tk.Frame):
                 self.after(1000, self.setup_game)
         else:
             self.ball.update()
-            self.after(50, self.game_loop)
+            if paddle_coords[0]+40 < ball_coords[0]:
+                self.paddle.move(10)
+            if paddle_coords[0]+40 > ball_coords[0]:
+                self.paddle.move(-10)
+            self.after(1, self.game_loop)
+
+    def restart(self):
+        self.lives = 3
+        self.width = 610
+        self.height = 400
+        self.items = {}
+        self.ball.delete()
+        self.paddle.delete()
+        self.paddle.ball = None
+        self.canvas.delete(self.text)
+        for x in range(5, self.width - 5, 75):
+            self.add_brick(x + 37.5, 50, 2)
+            self.add_brick(x + 37.5, 70, 1)
+            self.add_brick(x + 37.5, 90, 1)
+        self.update_lives_text()
+        self.text = self.draw_text(300, 200,
+                                      'Press Space to start')
+        self.canvas.bind('<space>', lambda _: self.start_game())       
 
     def check_collisions(self):
         ball_coords = self.ball.get_position()
