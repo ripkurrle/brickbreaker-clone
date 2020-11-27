@@ -178,13 +178,13 @@ class Game(tk.Frame):
         num_bricks = len(self.canvas.find_withtag('brick'))
         if num_bricks == 0: 
             self.ball.speed = None
-            self.draw_text(300, 200, 'You win!')
+            self.end_id = self.draw_text(300, 200, 'You win!')
             self.canvas.bind('<space>', lambda _: self.restart()) 
         elif self.ball.get_position()[3] >= self.height: 
             self.ball.speed = None
             self.lives -= 1
             if self.lives < 0:
-                self.draw_text(300, 200, 'Game Over')
+                self.end_id = self.draw_text(300, 200, 'Game Over')
             else:
                 self.after(1000, self.setup_game)
         else:
@@ -196,22 +196,25 @@ class Game(tk.Frame):
             self.after(1, self.game_loop)
 
     def restart(self):
-        self.lives = 3
-        self.width = 610
-        self.height = 400
-        self.items = {}
-        self.ball.delete()
+        self.canvas.delete(self.end_id)
         self.paddle.delete()
-        self.paddle.ball = None
-        self.canvas.delete(self.text)
+        self.paddle.set_ball(self.ball)
+        self.lives = 3
+        self.items = {}
+        self.paddle = Paddle(self.canvas, self.width/2, 326)
+        self.items[self.paddle.item] = self.paddle
         for x in range(5, self.width - 5, 75):
             self.add_brick(x + 37.5, 50, 2)
             self.add_brick(x + 37.5, 70, 1)
             self.add_brick(x + 37.5, 90, 1)
-        self.update_lives_text()
-        self.text = self.draw_text(300, 200,
-                                      'Press Space to start')
-        self.canvas.bind('<space>', lambda _: self.start_game())       
+
+        self.hud = None
+        self.setup_game()
+        self.canvas.focus_set()
+        self.canvas.bind('<Left>',
+                         lambda _: self.paddle.move(-10))
+        self.canvas.bind('<Right>',
+                         lambda _: self.paddle.move(10))     
 
     def check_collisions(self):
         ball_coords = self.ball.get_position()
